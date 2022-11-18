@@ -32,18 +32,22 @@ export async function checkIfExists() {
       childList : true
     });
 
-    document.body.appendChild(existsScript);
+    try {
+      document.body.appendChild(existsScript);
 
-
-    setTimeout(function () {
-      if (document.head.contains(existsResult)) {
-        // clean up observer and elements
-        observer.disconnect();
-        existsResult.remove();
-        existsScript.remove();
-        reject(new Error('mutation not observed'));
-      }
-    }, 2000)
+      setTimeout(function () {
+        if (document.head.contains(existsResult)) {
+          // clean up observer and elements
+          observer.disconnect();
+          existsResult.remove();
+          existsScript.remove();
+          reject(new Error('mutation not observed'));
+        }
+      }, 2000)
+    } catch (e) {
+      console.warn('Site Content Security Policy prevents pbjs querying script from being injected');
+      reject(new Error('Site Content Security Policy prevents pbjs querying script from being executed'));
+    }
   });
 }
 
@@ -95,18 +99,23 @@ export async function callFn(functionName : string) {
       childList : true
     });
 
-    // add script to DOM so that inner pbjs will be called
-    document.head.appendChild(bidResponseScript);
+    try {
+      // add script to DOM so that inner pbjs will be called
+      document.head.appendChild(bidResponseScript);
 
-    // make sure it eventually mutates
-    setTimeout(function () {
-      if (document.head.contains(responsesDiv)) {
-        // clean up observer and elements
-        bidResponseScript.remove();
-        responsesDiv.remove();
-        observer.disconnect();
-        reject(new Error('mutation not observed'));
-      }
-    }, 2000)
+      // make sure it eventually mutates
+      setTimeout(function () {
+        if (document.head.contains(responsesDiv)) {
+          // clean up observer and elements
+          bidResponseScript.remove();
+          responsesDiv.remove();
+          observer.disconnect();
+          reject(new Error('mutation not observed'));
+        }
+      }, 2000);
+    } catch (e) {
+      console.warn('Site Content Security Policy prevents pbjs querying script from being injected');
+      reject(new Error('Site Content Security Policy prevents pbjs querying script from being injected'));
+    }
   });
 }

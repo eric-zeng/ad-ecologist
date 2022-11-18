@@ -1,30 +1,35 @@
-  {
-    "name": "UW Ad Tracker",
-    "version": "1.2",
-    "description": "Help researchers at the University of Washington learn about how ads target you",
-    "background": {
-      "scripts": ["background.js"],
-      "persistent": true
-    },
-    "permissions": [
-      "<all_urls>",
-      "webRequest",
-      "storage",
-      "unlimitedStorage",
-      "webNavigation"
-    ],
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["contentScript.js"]
-      }
-    ],
-    "web_accessible_resources": [
+{
+  "name": "UW Ad Tracker",
+  "version": "1.2",
+  "manifest_version": 3,
+  "description": "Help researchers at the University of Washington learn about how ads target you",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "webRequest",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": [
       "easylist_selectors.json",
       "manual_selectors.json"
     ],
-    "manifest_version": 2,
-    "browser_action": {
-      "default_icon": "/img/icon.png"
-    }
+    "matches": ["<all_urls>"]
+  }],
+  "action": {
+    "default_icon": "/img/icon.png"
   }
+}

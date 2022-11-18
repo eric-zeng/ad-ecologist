@@ -15,12 +15,12 @@ interface State {
 interface Props {
   initialNumAds: number,
   stage: PopupStage,
-  visitCount: number,
+  // visitCount: number,
   onPromptStart: () => void,
   onPromptSkip: () => void,
   onPromptHelp: () => void,
   onPromptStatus: () => void,
-  onPromptSecondVisit: () => void
+  // onPromptSecondVisit: () => void
 }
 
 export enum PopupStage {
@@ -44,9 +44,9 @@ export default class Popup extends React.Component<Props, State> {
       pbAdCount: 0,
       bidderCount: 0
     }
-    if (this.props.visitCount == 1) {
-      this.props.onPromptSecondVisit();
-    }
+    // if (this.props.visitCount == 1) {
+    //   this.props.onPromptSecondVisit();
+    // }
   }
 
   renderProgressBar() {
@@ -74,16 +74,6 @@ export default class Popup extends React.Component<Props, State> {
     return (
       <div className='popup-content'>
         <h4>Please wait, UW Ad Tracker is collecting data on this page</h4>
-        <ul>
-          <li>Please <b>do not open or switch to new tabs or windows</b> in the web browser.</li>
-          <li>
-            It is <b>ok to use your phone or other apps on your computer</b>,
-            such as Zoom or Microsoft Word.
-          </li>
-          <li>
-            If another popup appears on the page, <b>please close it</b>.
-          </li>
-        </ul>
         { this.renderProgressBar() }
         { this.renderBidInfo() }
       </div>
@@ -100,22 +90,8 @@ export default class Popup extends React.Component<Props, State> {
         </h3>
         <p>
           After clicking start, the extension will automatically scan the ads
-          on the page. Then, it will refresh the page, and scan the
-          page a second time.
+          on the page.
         </p>
-        <p>
-          When the extension is scanning the page:
-        </p>
-        <ul>
-          <li>Please <b>do not open or switch to new tabs or windows</b> in the web browser.</li>
-          <li>
-            It is <b>ok to use your phone or other apps on your computer</b>,
-            such as Zoom or Microsoft Word.
-          </li>
-          <li>
-            If another popup appears on the page, <b>please close it</b>.
-          </li>
-        </ul>
         <div className="button-strip">
           <button className="button-primary"
                   onClick={() => this.props.onPromptStart()}>
@@ -123,11 +99,7 @@ export default class Popup extends React.Component<Props, State> {
           </button>
           <button className="button-secondary"
                   onClick={() => this.props.onPromptSkip()}>
-            Skip for now
-          </button>
-          <button className="button-secondary"
-                  onClick={() => this.props.onPromptHelp()}>
-            Help
+            Close
           </button>
         </div>
       </div>
@@ -154,21 +126,6 @@ export default class Popup extends React.Component<Props, State> {
         <p>You may safely close this tab.</p>
         {this.renderProgressBar()}
         {this.renderBidInfo()}
-        <div className="button-strip">
-          <button className="button-primary"
-              onClick={() => this.props.onPromptStatus()}>
-            Back to Website List
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  renderHalfway() {
-    return (
-      <div className='popup-content'>
-      <h4>UW Ad Tracker is halfway through collecting data on this page.</h4>
-      <p><br></br>We will refresh and scan the page one more time.</p>
       </div>
     );
   }
@@ -197,10 +154,7 @@ export default class Popup extends React.Component<Props, State> {
       case PopupStage.IN_PROGRESS:
         content = this.renderInProgress();
         break;
-      case PopupStage.COMPLETE_ONE:
-        content = this.renderHalfway();
-        break;
-      case PopupStage.COMPLETE_TWO:
+      case PopupStage.COMPLETE:
         content = this.renderComplete();
         break;
       case PopupStage.UPLOADING:

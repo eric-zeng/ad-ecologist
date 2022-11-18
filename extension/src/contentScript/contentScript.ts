@@ -115,83 +115,83 @@ function detectAds(selectors: string[]) {
 // cookies to background script to actually set them in Chrome's cookie store,
 // and need to keep current cookies in page to make them accessible via JavaScript)
 
-let monkeypatchCookieCode =
-  // Need to inject stack trace into page
-  // checking when cookies are set
-  // Inspects the call stack, and notifies the background script of a possible category A tracking situation.
-  `function inspectStackA() {
-    let callstack = [];
-    let uri_pattern = /\\b((?:[a-z][\\w-]+:(?:\\/{1,3}|[a-z0-9%])|www\\d{0,3}[.]|[a-z0-9.\\-]+[.][a-z]{2,4}\\/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s\`!()\\[\\]{};:'".,<>?������]))/ig;
-    let isCallstackPopulated = false;
-    try {
-      // @ts-ignore
-      i.dont.exist += 0; // Will cause exception
-    } catch (e) {
-      let urls = e.stack.match(uri_pattern);
-      return urls;
-    }
-  }`
-   +
-  // Event to notify background script when a cookie is set using document.cookie's setter
-  `
-  function createCookieEvent(cookieString, urls) {
-    document.dispatchEvent(
-      new CustomEvent("setCookieEvent", {
-        detail: { cookieString: cookieString, stackTrace: urls,
-        timestamp: Date.now() }
-      }));
-  }
-  ` +
+// let monkeypatchCookieCode =
+//   // Need to inject stack trace into page
+//   // checking when cookies are set
+//   // Inspects the call stack, and notifies the background script of a possible category A tracking situation.
+//   `function inspectStackA() {
+//     let callstack = [];
+//     let uri_pattern = /\\b((?:[a-z][\\w-]+:(?:\\/{1,3}|[a-z0-9%])|www\\d{0,3}[.]|[a-z0-9.\\-]+[.][a-z]{2,4}\\/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s\`!()\\[\\]{};:'".,<>?������]))/ig;
+//     let isCallstackPopulated = false;
+//     try {
+//       // @ts-ignore
+//       i.dont.exist += 0; // Will cause exception
+//     } catch (e) {
+//       let urls = e.stack.match(uri_pattern);
+//       return urls;
+//     }
+//   }`
+//    +
+//   // Event to notify background script when a cookie is set using document.cookie's setter
+//   `
+//   function createCookieEvent(cookieString, urls) {
+//     document.dispatchEvent(
+//       new CustomEvent("setCookieEvent", {
+//         detail: { cookieString: cookieString, stackTrace: urls,
+//         timestamp: Date.now() }
+//       }));
+//   }
+//   ` +
 
-  // Actually overwrite document.cookie
-  // On set, create event to notify background script
-  `
-  let _cookieSetter = document.__lookupSetter__("cookie");
-  let _cookieGetter = document.__lookupGetter__("cookie");
-  document.__defineSetter__("cookie", function(cookieString) {
-    createCookieEvent(cookieString, inspectStackA());
-    _cookieSetter.call(document, cookieString);
-  });
-  document.__defineGetter__("cookie", _cookieGetter);
-  `;
+//   // Actually overwrite document.cookie
+//   // On set, create event to notify background script
+//   `
+//   let _cookieSetter = document.__lookupSetter__("cookie");
+//   let _cookieGetter = document.__lookupGetter__("cookie");
+//   document.__defineSetter__("cookie", function(cookieString) {
+//     createCookieEvent(cookieString, inspectStackA());
+//     _cookieSetter.call(document, cookieString);
+//   });
+//   document.__defineGetter__("cookie", _cookieGetter);
+//   `;
 
-interface CookieEvent extends CustomEvent {
-  detail: {
-    cookieString: string,
-    stackTrace: string[] | null,
-    timestamp: number
-  }
-}
+// interface CookieEvent extends CustomEvent {
+//   detail: {
+//     cookieString: string,
+//     stackTrace: string[] | null,
+//     timestamp: number
+//   }
+// }
 
-// THIS CODE RUNS WHEN PAGE LOADS:
-// Actually inject the code
-let scriptDiv = document.createElement('script');
-scriptDiv.appendChild(document.createTextNode(monkeypatchCookieCode));
-(document.head || document.documentElement).appendChild(scriptDiv);
-// scriptDiv.parentNode!.removeChild(scriptDiv);
+// // THIS CODE RUNS WHEN PAGE LOADS:
+// // Actually inject the code
+// let scriptDiv = document.createElement('script');
+// scriptDiv.appendChild(document.createTextNode(monkeypatchCookieCode));
+// (document.head || document.documentElement).appendChild(scriptDiv);
+// // scriptDiv.parentNode!.removeChild(scriptDiv);
 
-// Event that fires when document.cookie's setter is called.
-// Send message to background script to actually set the cookie.
-document.addEventListener('setCookieEvent',
-  function (e: CookieEvent) {
-    let cookieVal = e.detail.cookieString;
-    let stackTraceVal = e.detail.stackTrace;
+// // Event that fires when document.cookie's setter is called.
+// // Send message to background script to actually set the cookie.
+// document.addEventListener('setCookieEvent',
+//   function (e: CookieEvent) {
+//     let cookieVal = e.detail.cookieString;
+//     let stackTraceVal = e.detail.stackTrace;
 
-    let scriptURL;
-    if (stackTraceVal && stackTraceVal.length > 0) {
-      scriptURL = stackTraceVal[stackTraceVal.length - 1];
-    }
+//     let scriptURL;
+//     if (stackTraceVal && stackTraceVal.length > 0) {
+//       scriptURL = stackTraceVal[stackTraceVal.length - 1];
+//     }
 
-    sendProgrammaticCookieMessage({
-      type: messages.MessageType.PROGRAMMATIC_COOKIE,
-      url: document.URL,
-      stackTrace: stackTraceVal,
-      scriptURL: scriptURL,
-      cookieString: cookieVal,
-      timestamp: e.detail.timestamp
-    });
+//     sendProgrammaticCookieMessage({
+//       type: messages.MessageType.PROGRAMMATIC_COOKIE,
+//       url: document.URL,
+//       stackTrace: stackTraceVal,
+//       scriptURL: scriptURL,
+//       cookieString: cookieVal,
+//       timestamp: e.detail.timestamp
+//     });
 
-  } as EventListener);
+//   } as EventListener);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Measurement Functions
@@ -262,12 +262,12 @@ class Measurement {
 
     // only start at prompt if it's the first time loaded
     let startingStage = PopupStage.PROMPT;
-    let visitCount = 0;
+    // let visitCount = 0;
     // otherwise, go straight into progress
-    if (secondVisit) {
-      startingStage = PopupStage.IN_PROGRESS;
-      visitCount = 1;
-    }
+    // if (secondVisit) {
+    //   startingStage = PopupStage.IN_PROGRESS;
+    //   visitCount = 1;
+    // }
     // Instantiate the React Popup component inside the Shadow DOM
     this.popupRef = React.createRef<Popup>();
     let props = {
@@ -279,7 +279,7 @@ class Measurement {
       onPromptStatus: sendOpenStatusMessage,
       ref: this.popupRef,
       stage: startingStage,
-      visitCount: visitCount
+      // visitCount: visitCount
     }
     ReactDOM.render(React.createElement(Popup, props), this.popupRoot);
   }
@@ -319,14 +319,14 @@ class Measurement {
    * the user clicks the "Start" button.
    */
   async collectData() {
-    let secondVisit = await sendCheckSecondVisitMessage();
-    console.log('is second visit?', secondVisit);
+    // let secondVisit = await sendCheckSecondVisitMessage();
+    // console.log('is second visit?', secondVisit);
 
     // if the first visit, we set progress when data collects
     // otherwise we already set it
-    if (!secondVisit) {
-      this.popupRef.current?.setState({ stage: PopupStage.IN_PROGRESS});
-    }
+    // if (!secondVisit) {
+    this.popupRef.current?.setState({ stage: PopupStage.IN_PROGRESS});
+    // }
 
 
     // first, we have to add page url with eID to the pages database
@@ -350,11 +350,11 @@ class Measurement {
 
     // check that the site uses pbjs by adding script to DOM and trying to run commands
     // from there
-    if (!(await pbjsAdapter.checkIfExists())) {
-      console.error('pbjs doesn\'t exist');
-      this.popupRef.current?.setState({ error: 'Error: could not find prebid.js on this page.' });
-      return;
-    }
+    // if (!(await pbjsAdapter.checkIfExists())) {
+    //   console.error('pbjs doesn\'t exist');
+    //   this.popupRef.current?.setState({ error: 'Error: could not find prebid.js on this page.' });
+    //   return;
+    // }
 
     let cpmTotal = 0;
     let pbAdCount = 0;
@@ -381,44 +381,56 @@ class Measurement {
         ad.scrollIntoView({ block: 'center' });
         await sleep(400);
 
-        console.log('Collecting PBJS data');
-        // get data associated with current ad
-        let bidResponses = await pbjsAdapter.callFn(`getBidResponses`);
-        let prebidWinningBids = await pbjsAdapter.callFn(`getAllPrebidWinningBids`);
-        let winningBids = await pbjsAdapter.callFn(`getAllWinningBids`);
+        let bidResponses, prebidWinningBids, winningBids,
+            associatedBidResponses, associatedWinningBids,
+            associatedPrebidWinningBids;
 
-        // associate current screenshot with given bid response
-        // this is called after each iteration because new info may
-        // load when a new ad becomes visible
-        let associatedBidResponses = await associatePBJSResponsesWithAd(
-              ad, "getBidResponses", bidResponses);
-        let associatedWinningBids = await associatePBJSResponsesWithAd(
-              ad, "getAllWinningBids", winningBids);
-        let associatedPrebidWinningBids = await associatePBJSResponsesWithAd(
-              ad, "getAllPrebidWinningBids", prebidWinningBids);
+        if (await pbjsAdapter.checkIfExists()) {
+          console.log('Collecting PBJS data');
+          // get data associated with current ad
 
-        // if (!associatedBidResponses && !associatedWinningBids && !associatedPrebidWinningBids) {
-        //   console.log(`Skipping ad, no associated prebid data`);
-        //   this.incrementAdCounter();
-        //   continue;
-        // }
-        if (associatedBidResponses) {
-          associatedBidResponses.forEach((bid: any) => {
-            bidders.add(bid);
+
+          try {
+            bidResponses = await pbjsAdapter.callFn(`getBidResponses`);
+            prebidWinningBids = await pbjsAdapter.callFn(`getAllPrebidWinningBids`);
+            winningBids = await pbjsAdapter.callFn(`getAllWinningBids`);
+
+            // associate current screenshot with given bid response
+            // this is called after each iteration because new info may
+            // load when a new ad becomes visible
+            associatedBidResponses = await associatePBJSResponsesWithAd(
+                  ad, "getBidResponses", bidResponses);
+            associatedWinningBids = await associatePBJSResponsesWithAd(
+                  ad, "getAllWinningBids", winningBids);
+            associatedPrebidWinningBids = await associatePBJSResponsesWithAd(
+                  ad, "getAllPrebidWinningBids", prebidWinningBids);
+          } catch (e) {
+            console.warn('Prebid.js not found on page, not recording bid data');
+          }
+
+          // if (!associatedBidResponses && !associatedWinningBids && !associatedPrebidWinningBids) {
+          //   console.log(`Skipping ad, no associated prebid data`);
+          //   this.incrementAdCounter();
+          //   continue;
+          // }
+          if (associatedBidResponses) {
+            associatedBidResponses.forEach((bid: any) => {
+              bidders.add(bid);
+            });
+          }
+          if (associatedWinningBids) {
+            cpmTotal += associatedWinningBids.cpm;
+            pbAdCount += 1;
+          } else if (associatedPrebidWinningBids) {
+            cpmTotal += associatedPrebidWinningBids.cpm;
+            pbAdCount += 1;
+          }
+          this.popupRef.current?.setState({
+            cpmTotal: cpmTotal,
+            pbAdCount: pbAdCount,
+            bidderCount: bidders.size
           });
         }
-        if (associatedWinningBids) {
-          cpmTotal += associatedWinningBids.cpm;
-          pbAdCount += 1;
-        } else if (associatedPrebidWinningBids) {
-          cpmTotal += associatedPrebidWinningBids.cpm;
-          pbAdCount += 1;
-        }
-        this.popupRef.current?.setState({
-          cpmTotal: cpmTotal,
-          pbAdCount: pbAdCount,
-          bidderCount: bidders.size
-        });
 
         // Skip ad if it is too small - it probably didn't render
         const rect = ad.getBoundingClientRect();
@@ -483,18 +495,18 @@ class Measurement {
       return;
     }
 
-    if (!secondVisit) {
-      console.log("entered not second visit logic");
-      this.popupRef.current?.setState({ stage: PopupStage.COMPLETE_ONE });
-      await sleep(5000);
+    // if (!secondVisit) {
+    //   console.log("entered not second visit logic");
+    //   this.popupRef.current?.setState({ stage: PopupStage.COMPLETE_ONE });
+    //   await sleep(5000);
 
-      // reload page again and start ad detection
-      await sendReloadPageMessage();
-      console.log("reloaded page");
-    } else {
-      // will only reach this on second complete
-      this.popupRef.current?.setState({ stage: PopupStage.COMPLETE_TWO });
-    }
+    //   // reload page again and start ad detection
+    //   await sendReloadPageMessage();
+    //   console.log("reloaded page");
+    // } else {
+    //   // will only reach this on second complete
+    this.popupRef.current?.setState({ stage: PopupStage.COMPLETE });
+    // }
   }
 }
 
@@ -536,12 +548,12 @@ function sendMeasurementDoneMessage() {
   } as messages.MeasurementDoneRequest);
 }
 
-function sendReloadPageMessage() {
-  return sendAsyncMessage({
-    type: messages.MessageType.RELOAD_PAGE,
-    pageURL: location.href
-  } as messages.ReloadPageRequest);
-}
+// function sendReloadPageMessage() {
+//   return sendAsyncMessage({
+//     type: messages.MessageType.RELOAD_PAGE,
+//     pageURL: location.href
+//   } as messages.ReloadPageRequest);
+// }
 
 function sendMeasurementStartMessage() {
   return sendAsyncMessage({
@@ -551,12 +563,12 @@ function sendMeasurementStartMessage() {
   } as messages.MeasurementStartRequest);
 }
 
-function sendCheckSecondVisitMessage() {
-  return sendAsyncMessage({
-    type: messages.MessageType.SECOND_VISIT_CHECK,
-    pageURL: location.href
-  } as messages.SecondVisitCheckRequest);
-}
+// function sendCheckSecondVisitMessage() {
+//   return sendAsyncMessage({
+//     type: messages.MessageType.SECOND_VISIT_CHECK,
+//     pageURL: location.href
+//   } as messages.SecondVisitCheckRequest);
+// }
 
 function sendAsyncMessage(message: messages.BasicMessage) {
   return new Promise<any>((resolve, reject) => {
@@ -580,14 +592,14 @@ function sendAsyncMessage(message: messages.BasicMessage) {
 // This is where content script starts executing, after it is first injected
 // into a web page.
 async function main() {
-  const getResult = chrome.storage.local.get('siteStatus', (items) => {
+  // const getResult = chrome.storage.local.get('siteStatus', (items) => {
     // if not fully visited
-    if (items.siteStatus && items.siteStatus[window.location.href] === 0) {
+    // if (items.siteStatus && items.siteStatus[window.location.href] === 0) {
       const popup = new Measurement(false);
-    } else if (items.siteStatus && items.siteStatus[window.location.href] === 1) {
-      const popup = new Measurement(true);
-    }
-  });
+    // } else if (items.siteStatus && items.siteStatus[window.location.href] === 1) {
+      // const popup = new Measurement(true);
+    // }
+  // });
 }
 
 main();

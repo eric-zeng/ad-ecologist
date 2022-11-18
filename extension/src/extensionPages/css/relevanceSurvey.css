@@ -1,0 +1,50 @@
+#container {
+  padding: 36px;
+}
+
+#survey-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+}
+
+.ad {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  max-width: 75%;
+}
+
+#survey-container form {
+  flex-shrink: 1;
+  flex-grow: 1;
+  flex-basis: 200px;
+}
+
+.scale-label {
+  width: 200px;
+}
+
+.scale-item {
+  width: 55px;
+  text-align: center;
+}
+
+.radio-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.scale-table tr {
+  border-bottom: none;
+}
+
+.scale-table td {
+  padding: 0;
+}
+
+.scale-table th {
+  padding: 0;
+}
+
+.scale-table {
+  margin-bottom: 2em;
+}

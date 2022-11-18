@@ -1,0 +1,17 @@
+body {
+    margin: 50px;
+}
+
+img {
+    max-width: 500px;
+}
+
+img.steps {
+    border: 1px solid black;
+    border-radius: 25px;
+}
+
+
+img.logos {
+    padding-bottom: 50px;
+  }

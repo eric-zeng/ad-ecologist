@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import * as messages from "../common/messages";
-import * as pbjsAdapter from './pbjsAdapter';
 import Popup, { PopupStage } from './popup';
 import PopupStyles from './popup.css';
 import * as chromePromise from '../common/chromePromise';
@@ -198,6 +197,10 @@ function detectAds(selectors: string[]) {
 // Measurement Functions
 ////////////////////////////////////////////////////////////////////////////////
 
+async function checkIfPbjsExists() {
+
+}
+
 /**
  * Given an ad, finds the corresponding data retrieved from Prebid.js
  * @param ad HTML element corresponding to ad
@@ -369,13 +372,13 @@ class Measurement {
             associatedBidResponses, associatedWinningBids,
             associatedPrebidWinningBids;
 
-        if (await pbjsAdapter.checkIfExists()) {
+        if (await sendCheckIfPbjsExistsMessage()) {
           console.log('Collecting PBJS data');
           // get data associated with current ad
           try {
-            bidResponses = await pbjsAdapter.callFn(`getBidResponses`);
-            prebidWinningBids = await pbjsAdapter.callFn(`getAllPrebidWinningBids`);
-            winningBids = await pbjsAdapter.callFn(`getAllWinningBids`);
+            bidResponses = await sendPbjsCallMessage('getBidResponses');
+            prebidWinningBids = await sendPbjsCallMessage(`getAllPrebidWinningBids`);
+            winningBids = await sendPbjsCallMessage(`getAllWinningBids`);
 
             // associate current screenshot with given bid response
             // this is called after each iteration because new info may
@@ -520,6 +523,20 @@ function sendMeasurementStartMessage() {
     pageURL: location.href,
     timestamp: Date.now()
   } as messages.MeasurementStartRequest);
+}
+
+function sendCheckIfPbjsExistsMessage() {
+  return sendAsyncMessage({
+    type: messages.MessageType.PBJS_CALL,
+    function: 'exists'
+  } as messages.PBJSRequest);
+}
+
+function sendPbjsCallMessage(fnName: string) {
+  return sendAsyncMessage({
+    type: messages.MessageType.PBJS_CALL,
+    function: fnName
+  } as messages.PBJSRequest);
 }
 
 function sendAsyncMessage(message: messages.BasicMessage) {

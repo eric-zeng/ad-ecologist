@@ -81,6 +81,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     //   handleReloadPage(message, sender, sendResponse);
     // case messages.MessageType.SECOND_VISIT_CHECK:
     //   handleSecondVisitCheck(message, sender, sendResponse);
+    case messages.MessageType.PBJS_CALL:
+      handlePBJSCall(message, sender, sendResponse);
+      break;
   }
 
   // make listener asynchronous so message response can be returned later
@@ -324,6 +327,18 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
 // Content Script Message Handlers
 ////////////////////////////////////////////////////////////////////////////////
 
+function getTabFromSender(sender: chrome.runtime.MessageSender):
+    [chrome.tabs.Tab, number] {
+  if (!sender.tab) {
+    throw new Error('No tab associated with runtime message');
+  }
+  if (!sender.tab.id) {
+    throw new Error('No tab id associated with runtime message');
+  }
+
+  return [sender.tab, sender.tab.id];
+}
+
 // async function handleProgrammaticCookieEvent(
 //     message: messages.ProgrammaticCookieRequest,
 //     sender: chrome.runtime.MessageSender,
@@ -373,31 +388,26 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
  * @param sendResponse
  */
 async function handleScreenshotRequest(
-  message: messages.ScreenshotRequest,
-  sender: chrome.runtime.MessageSender,
-  sendResponse: (response?: any) => void) {
-  if (!sender.tab) {
-    console.error('No tab associated with screenshot request');
+    message: messages.ScreenshotRequest,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: messages.BasicResponse) => void) {
+
+  let tab: chrome.tabs.Tab;
+  let tabId: number;
+  try {
+    [tab, tabId] = getTabFromSender(sender);
+  } catch {
     sendResponse({
       success: false,
-      error: 'No tab associated with screenshot request'
-    });
-    return;
-  }
-  if (!sender.tab.id) {
-    console.error('Tab associated with screenshot request has no id');
-    sendResponse({
-      success: false,
-      error: 'Tab associated with screenshot request has no id'
+      error: 'No tab associated with ScreenshotRequest message'
     });
     return;
   }
 
-  const tabId = sender.tab.id;
-  const windowId = sender.tab.windowId;
+  const windowId = tab.windowId;
 
   // Make the tab active if it currently is not the active tab
-  if (!sender.tab.active) {
+  if (!tab.active) {
     try {
       await chromePromise.tabs.update(tabId, { active: true });
     } catch (e) {
@@ -545,23 +555,17 @@ async function handleMeasurementStart(
   sender: chrome.runtime.MessageSender, sendResponse:
     (message: messages.BasicResponse) => void) {
 
-  if (!sender.tab) {
-    console.error('No tab associated with page load');
+  let tab: chrome.tabs.Tab;
+  let tabId: number;
+  try {
+    [tab, tabId] = getTabFromSender(sender);
+  } catch {
     sendResponse({
       success: false,
-      error: 'No tab associated with page load'
+      error: 'No tab associated with PBJSRequest message'
     });
     return;
   }
-  if (!sender.tab.id) {
-    console.error('Tab associated with page load has no id');
-    sendResponse({
-      success: false,
-      error: 'Tab associated with page load has no id'
-    });
-    return;
-  }
-  const tabId = sender.tab.id;
 
   // upon new page load, associate page with url and tabid
   processMeasurementStart(message.pageURL, tabId, message.timestamp);
@@ -572,32 +576,32 @@ async function handleMeasurementStart(
   sendResponse({ success: true });
 }
 
-async function handleReloadPage(
-  message: messages.MeasurementStartRequest,
-  sender: chrome.runtime.MessageSender, sendResponse:
-    (message: messages.BasicResponse) => void) {
+// async function handleReloadPage(
+//   message: messages.MeasurementStartRequest,
+//   sender: chrome.runtime.MessageSender, sendResponse:
+//     (message: messages.BasicResponse) => void) {
 
-  if (!sender.tab) {
-    console.error('No tab associated with page load');
-    sendResponse({
-      success: false,
-      error: 'No tab associated with page load'
-    });
-    return;
-  }
-  if (!sender.tab.id) {
-    console.error('Tab associated with page load has no id');
-    sendResponse({
-      success: false,
-      error: 'Tab associated with page load has no id'
-    });
-    return;
-  }
-  const tabId = sender.tab?.id;
-  chrome.tabs.reload(tabId);
+//   if (!sender.tab) {
+//     console.error('No tab associated with page load');
+//     sendResponse({
+//       success: false,
+//       error: 'No tab associated with page load'
+//     });
+//     return;
+//   }
+//   if (!sender.tab.id) {
+//     console.error('Tab associated with page load has no id');
+//     sendResponse({
+//       success: false,
+//       error: 'Tab associated with page load has no id'
+//     });
+//     return;
+//   }
+//   const tabId = sender.tab?.id;
+//   chrome.tabs.reload(tabId);
 
-  sendResponse({ success: true });
-}
+//   sendResponse({ success: true });
+// }
 
 // async function handleSecondVisitCheck(
 //   message: messages.SecondVisitCheckRequest,
@@ -609,6 +613,69 @@ async function handleReloadPage(
 //     let isSecond = (siteStatus[message.pageURL] === 1);
 //     sendResponse({success: true, message: isSecond});
 // }
+
+async function handlePBJSCall(
+    message: messages.PBJSRequest,
+    sender: chrome.runtime.MessageSender,
+    sendResponse: (message: messages.BasicResponse) => void) {
+
+  let tab: chrome.tabs.Tab;
+  let tabId: number;
+  try {
+    [tab, tabId] = getTabFromSender(sender);
+  } catch {
+    sendResponse({
+      success: false,
+      error: 'No tab associated with PBJSRequest message'
+    });
+    return;
+  }
+
+  let results;
+  if (message.function === 'exists') {
+    results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      world: 'MAIN',
+      func: checkIfPbjsExists
+    });
+  } else {
+    results = await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      world: 'MAIN',
+      func: callPbjsFunction,
+      args: [message.function]
+    });
+  }
+  if (results[0].result instanceof Error) {
+    sendResponse({
+      success: false,
+      error: results[0].result.message
+    })
+  } else {
+    sendResponse({
+      success: true,
+      message: results[0].result
+    });
+  }
+}
+
+function checkIfPbjsExists() {
+  try {
+    // @ts-ignore
+    return !(typeof pbjs === 'undefined' || pbjs.getAllWinningBids === undefined);
+  } catch (e) {
+    return e;
+  }
+}
+
+function callPbjsFunction(functionName: string) {
+  try {
+    // @ts-ignore
+    return pbjs[functionName]();
+  } catch (e) {
+    return e;
+  }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////

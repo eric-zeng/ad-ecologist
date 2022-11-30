@@ -10,7 +10,8 @@ export enum MessageType {
   REGISTER = 'register',
   MEASUREMENT_START = 'measurementStart',
   RELOAD_PAGE = 'reloadPage',
-  SECOND_VISIT_CHECK = 'secondVisitCheck'
+  SECOND_VISIT_CHECK = 'secondVisitCheck',
+  PBJS_CALL = 'pbjsCall'
 }
 
 export interface ScreenshotRequest {
@@ -61,6 +62,11 @@ export interface OpenInstructionsRequest {
 
 export interface OpenStatusRequest {
   type: MessageType.OPEN_STATUS,
+}
+
+export interface PBJSRequest {
+  type: MessageType.PBJS_CALL,
+  function: 'exists' | 'getBidResponses' | 'getAllPrebidWinningBids' | 'getAllWinningBids'
 }
 
 export interface BasicMessage {

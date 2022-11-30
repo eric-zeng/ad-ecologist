@@ -10,6 +10,7 @@
   "permissions": [
     "storage",
     "unlimitedStorage",
+    "scripting",
     "webRequest",
     "webNavigation"
   ],

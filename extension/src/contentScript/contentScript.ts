@@ -106,99 +106,8 @@ function detectAds(selectors: string[]) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Programmatic Cookie Modification Detection
-////////////////////////////////////////////////////////////////////////////////
-
-// Monkeypatch document.cookie
-// (a real pain due to the above referenced Chrome bug... need to send updated
-// cookies to background script to actually set them in Chrome's cookie store,
-// and need to keep current cookies in page to make them accessible via JavaScript)
-
-// let monkeypatchCookieCode =
-//   // Need to inject stack trace into page
-//   // checking when cookies are set
-//   // Inspects the call stack, and notifies the background script of a possible category A tracking situation.
-//   `function inspectStackA() {
-//     let callstack = [];
-//     let uri_pattern = /\\b((?:[a-z][\\w-]+:(?:\\/{1,3}|[a-z0-9%])|www\\d{0,3}[.]|[a-z0-9.\\-]+[.][a-z]{2,4}\\/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s\`!()\\[\\]{};:'".,<>?������]))/ig;
-//     let isCallstackPopulated = false;
-//     try {
-//       // @ts-ignore
-//       i.dont.exist += 0; // Will cause exception
-//     } catch (e) {
-//       let urls = e.stack.match(uri_pattern);
-//       return urls;
-//     }
-//   }`
-//    +
-//   // Event to notify background script when a cookie is set using document.cookie's setter
-//   `
-//   function createCookieEvent(cookieString, urls) {
-//     document.dispatchEvent(
-//       new CustomEvent("setCookieEvent", {
-//         detail: { cookieString: cookieString, stackTrace: urls,
-//         timestamp: Date.now() }
-//       }));
-//   }
-//   ` +
-
-//   // Actually overwrite document.cookie
-//   // On set, create event to notify background script
-//   `
-//   let _cookieSetter = document.__lookupSetter__("cookie");
-//   let _cookieGetter = document.__lookupGetter__("cookie");
-//   document.__defineSetter__("cookie", function(cookieString) {
-//     createCookieEvent(cookieString, inspectStackA());
-//     _cookieSetter.call(document, cookieString);
-//   });
-//   document.__defineGetter__("cookie", _cookieGetter);
-//   `;
-
-// interface CookieEvent extends CustomEvent {
-//   detail: {
-//     cookieString: string,
-//     stackTrace: string[] | null,
-//     timestamp: number
-//   }
-// }
-
-// // THIS CODE RUNS WHEN PAGE LOADS:
-// // Actually inject the code
-// let scriptDiv = document.createElement('script');
-// scriptDiv.appendChild(document.createTextNode(monkeypatchCookieCode));
-// (document.head || document.documentElement).appendChild(scriptDiv);
-// // scriptDiv.parentNode!.removeChild(scriptDiv);
-
-// // Event that fires when document.cookie's setter is called.
-// // Send message to background script to actually set the cookie.
-// document.addEventListener('setCookieEvent',
-//   function (e: CookieEvent) {
-//     let cookieVal = e.detail.cookieString;
-//     let stackTraceVal = e.detail.stackTrace;
-
-//     let scriptURL;
-//     if (stackTraceVal && stackTraceVal.length > 0) {
-//       scriptURL = stackTraceVal[stackTraceVal.length - 1];
-//     }
-
-//     sendProgrammaticCookieMessage({
-//       type: messages.MessageType.PROGRAMMATIC_COOKIE,
-//       url: document.URL,
-//       stackTrace: stackTraceVal,
-//       scriptURL: scriptURL,
-//       cookieString: cookieVal,
-//       timestamp: e.detail.timestamp
-//     });
-
-//   } as EventListener);
-
-////////////////////////////////////////////////////////////////////////////////
 // Measurement Functions
 ////////////////////////////////////////////////////////////////////////////////
-
-async function checkIfPbjsExists() {
-
-}
 
 /**
  * Given an ad, finds the corresponding data retrieved from Prebid.js
@@ -490,10 +399,6 @@ class Measurement {
  * dimensions and location of the ad, the HTML content of the ad, etc.
  */
 function sendScreenshotMessage(message: messages.ScreenshotRequest) {
-  return sendAsyncMessage(message);
-}
-
-function sendProgrammaticCookieMessage(message: messages.ProgrammaticCookieRequest) {
   return sendAsyncMessage(message);
 }
 

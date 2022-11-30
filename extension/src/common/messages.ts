@@ -3,7 +3,6 @@
 
 export enum MessageType {
   SCREENSHOT = 'screenshot',
-  PROGRAMMATIC_COOKIE = 'programmaticCookie',
   MEASUREMENT_DONE = 'measurementDone',
   OPEN_INSTRUCTIONS = 'openInstructions',
   OPEN_STATUS = 'openStatus',
@@ -25,15 +24,6 @@ export interface ScreenshotRequest {
   prebidWinningBids: any,
   bidResponses: any[],
   pixelRatio: number
-}
-
-export interface ProgrammaticCookieRequest {
-  type: MessageType.PROGRAMMATIC_COOKIE,
-  url: string,
-  stackTrace: string[] | null,
-  scriptURL?: string,
-  cookieString: string,
-  timestamp: number
 }
 
 export interface MeasurementDoneRequest {

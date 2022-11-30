@@ -24,33 +24,6 @@ CREATE TABLE pages (
   time_loaded TIMESTAMPTZ
 );
 
-CREATE TABLE request_event (
-  id SERIAL PRIMARY KEY,
-  top_url TEXT,
-  request_url TEXT,
-  request_id TEXT,
-  tab TEXT,
-  referer_url TEXT,
-  window_type TEXT,
-  response_headers TEXT,
-  response_code INTEGER,
-  resource_type TEXT,
-  method TEXT,
-  response_time TIMESTAMPTZ,
-  request_time TIMESTAMPTZ,
-  request_headers TEXT,
-  pages_id TEXT REFERENCES pages(id)
-);
-
-CREATE TABLE programmatic_cookie_event (
-  id SERIAL PRIMARY KEY,
-  top_url TEXT,
-  setting_script_url TEXT,
-  cookie_string TEXT,
-  timestamp TIMESTAMPTZ,
-  pages_id TEXT REFERENCES pages(id)
-);
-
 CREATE TABLE ad (
   id SERIAL PRIMARY KEY,
   e_id TEXT REFERENCES extension(e_id),

@@ -10,11 +10,6 @@ export const serverUrl: string = 'http://localhost:6800';
 // Adds a red border around all detected ads. For debugging purposes.
 export const showAdBoundingBox: boolean = false;
 
-// Collect webRequest and cookie data, which can be used for detecting and
-// measuring web trackers. Data is collected in the format used by the
-// TrackingObserver and TrackingExcavator projects.
-// export const experimentalTrackingDetection: boolean = false;
-
 ///////////////////////////////
 // Extension behavior flags  //
 ///////////////////////////////

@@ -6,7 +6,6 @@ import path from 'path';
 import { Pool } from 'pg';
 import 'source-map-support/register';
 import saveScreenshot from './saveScreenshot';
-// import { siteAllowList } from './siteAllowList';
 import { detect } from 'detect-browser';
 
 // Process and validate command line args
@@ -166,10 +165,6 @@ app.post('/register', logEndpoint, async (req, res) => {
   }
 });
 
-// app.get('/siteAllowList', (req, res) => {
-//   res.json(siteAllowList);
-// });
-
 // Takes ad data from extension, saves the image data in a file, and the
 // metadata in the database
 app.post('/ad_data', logEndpoint, isValidParticipant, async (req, res) => {
@@ -265,55 +260,6 @@ app.post('/ad_screenshot_data', logEndpoint, isValidParticipant, async (req, res
   }
 });
 
-
-// log request/response events
-app.post('/request_event_data', logEndpoint, isValidParticipant, async (req, res) => {
-  try {
-    let b  = req.body.data;
-    let pageID = req.body.pageLoadID;
-    for (let r of b) {
-      await pg.query(`
-      INSERT INTO request_event (top_url, request_url, request_id,
-        referer_url, window_type, response_headers, response_code,
-        resource_type, method, response_time, request_time, request_headers,
-        pages_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,
-        to_timestamp($10 / 1000.0), to_timestamp($11 / 1000.0), $12, $13)`,
-      [r.top_url, r.request_url, r.request_id, r.referer_url,
-      r.window_type, JSON.stringify(r.response_headers), r.response_code, r.resource_type,
-      r.method, r.response_time, r.request_time, JSON.stringify(r.request_headers),
-      pageID]);
-    }
-    res.status(200).send();
-  } catch (e) {
-    console.log(e);
-    res.status(500).send();
-  }
-});
-
-// log when a cookie is set
-app.post('/cookie_event_data', logEndpoint, isValidParticipant, async (req, res) => {
-  try {
-    let b = req.body.data;
-    let pageID = req.body.pageLoadID;
-
-    // might double check and make sure that user id doesn't already exist
-    for (let c of b) {
-      await pg.query(`
-      INSERT INTO programmatic_cookie_event
-      (top_url, setting_script_url, cookie_string, timestamp, pages_id)
-      VALUES ($1, $2, $3, to_timestamp($4 / 1000.0), $5)`,
-        [c.top_url, c.setting_script_url, c.cookie_string,
-        c.timestamp, pageID]);
-    }
-
-    res.status(200).send();
-  } catch (e) {
-    console.log(e);
-    res.status(500).send();
-  }
-});
-
 // log when a page is visited and measurement is complete
 app.post('/log_page_data', logEndpoint, isValidParticipant, async (req, res) => {
   try {
@@ -372,7 +318,6 @@ app.post('/relevance_survey_data', logEndpoint, isValidParticipant, async (req, 
     res.status(500).send();
   }
 });
-
 
 // Starts the database connection and server
 pg.connect().then(() => {

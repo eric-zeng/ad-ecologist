@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import MersenneTwister from 'mersenne-twister';
-import * as chromePromise from '../../common/chromePromise';
 import { allowParticipantsToReviewAds, randomizeAllowListOrder, restrictToAllowList, reviewOnAllowListComplete, siteScrapeLimit } from '../../config';
 
 const mt = new MersenneTwister();
@@ -26,7 +25,7 @@ class Status extends React.Component<{}, StatusState> {
 
   async componentDidMount() {
     const { siteStatus, visitCount, extension_id, cpmTotal, pbAdCount, randomSeed } =
-      await chromePromise.storage.local.get(
+      await chrome.storage.local.get(
         ['siteStatus', 'visitCount', 'extension_id', 'pbAdCount', 'cpmTotal', 'randomSeed']);
 
     if (!extension_id) {

@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import * as messages from "../common/messages";
 import Popup, { PopupStage } from './popup';
 import PopupStyles from './popup.css';
-import * as chromePromise from '../common/chromePromise';
 import { promptBeforeScraping, restrictToAllowList, showAdBoundingBox, siteScrapeLimit } from '../config';
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -455,7 +454,7 @@ class Measurement {
       await sendMeasurementDoneMessage();
 
       // Update running totals of bid amounts in chrome.storage
-      const storedBidData = await chromePromise.storage.local.get(
+      const storedBidData = await chrome.storage.local.get(
           ['cpmTotal', 'pbAdCount', 'bidders']);
       const storedCpmTotal: number =
           storedBidData.cpmTotal ? storedBidData.cpmTotal : 0;
@@ -465,7 +464,7 @@ class Measurement {
           storedBidData.bidders ? storedBidData.bidders : [];
 
       storedBidders.forEach(b => bidders.add(b));
-      await chromePromise.storage.local.set({
+      await chrome.storage.local.set({
         cpmTotal: storedCpmTotal + cpmTotal,
         pbAdCount: storedPbAdCount + pbAdCount,
         bidders: Array.from(bidders)

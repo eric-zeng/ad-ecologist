@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import * as chromePromise from '../../common/chromePromise';
 import ErrorAlert from '../../common/errorAlert';
 import {serverUrl} from '../../config';
 import AdData from './AdData';
@@ -37,11 +36,11 @@ export default class RelevanceSurvey extends React.Component<{}, State> {
 
   async componentDidMount() {
     const { savedAds, relevanceSurveyIndex } =
-      await chromePromise.storage.local.get(
+      await chrome.storage.local.get(
         ['savedAds', 'relevanceSurveyIndex']);
 
 
-    const adDataObj = await chromePromise.storage.local.get(savedAds.adIds) as {[adId: string]: AdData};
+    const adDataObj = await chrome.storage.local.get(savedAds.adIds as string[]) as {[adId: string]: AdData};
 
     let adsWithBids = Object.entries(adDataObj)
       .map(([adId, data]) => { return { adId: adId, ...data }})
@@ -100,7 +99,7 @@ export default class RelevanceSurvey extends React.Component<{}, State> {
     const adId = adSample[adIndex].adId;
 
     try {
-      const { extension_id } = await chromePromise.storage.local.get('extension_id');
+      const { extension_id } = await chrome.storage.local.get('extension_id');
       let res = await fetch(`${serverUrl}/relevance_survey_data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,9 +120,9 @@ export default class RelevanceSurvey extends React.Component<{}, State> {
       if (adIndex < adSample.length - 1) {
         this.setState({ adIndex: adIndex + 1 });
         document.getElementById('progress')?.scrollIntoView(true);
-        await chromePromise.storage.local.set({ relevanceSurveyIndex: adIndex + 1 });
+        await chrome.storage.local.set({ relevanceSurveyIndex: adIndex + 1 });
       } else {
-        await chromePromise.storage.local.set({ relevanceSurveyIndex: adIndex + 1 });
+        await chrome.storage.local.set({ relevanceSurveyIndex: adIndex + 1 });
         window.location.href = '/approveAds.html';
       }
     } catch (e) {

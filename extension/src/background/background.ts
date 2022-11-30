@@ -2,7 +2,7 @@ import { v4 as uuid } from 'uuid';
 import * as messages from '../common/messages';
 // import RequestEvent from './RequestEvent';
 // import ProgrammaticCookieEvent from './ProgrammaticCookieEvent'
-import * as chromePromise from '../common/chromePromise';
+// import * as chromePromise from '../common/chromePromise';
 import {allowParticipantsToReviewAds, restrictToAllowList, reviewOnAllowListComplete, serverUrl, siteScrapeLimit} from '../config';
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -409,7 +409,7 @@ async function handleScreenshotRequest(
   // Make the tab active if it currently is not the active tab
   if (!tab.active) {
     try {
-      await chromePromise.tabs.update(tabId, { active: true });
+      await chrome.tabs.update(tabId, { active: true });
     } catch (e) {
       console.error('Could not refocus tab');
       console.error(e);
@@ -421,7 +421,7 @@ async function handleScreenshotRequest(
   // Take screenshot
   let screenshot: string;
   try {
-    screenshot = await chromePromise.tabs.captureVisibleTab(windowId);
+    screenshot = await chrome.tabs.captureVisibleTab(windowId);
   } catch (e) {
     console.error('Could not screenshot tab');
     console.error(e);
@@ -431,7 +431,7 @@ async function handleScreenshotRequest(
 
   let eID: string;
   try {
-    eID = (await chromePromise.storage.local.get('extension_id')).extension_id;
+    eID = (await chrome.storage.local.get('extension_id')).extension_id;
   } catch(e) {
     console.error('Could not get extension id from storage.');
     console.error(e);
@@ -478,7 +478,7 @@ async function handleScreenshotRequest(
 
   // Save ad -> screenshot mapping in storage
   const adId = (await response.json()).adId as number;
-  const savedAds = (await chromePromise.storage.local.get('savedAds')).savedAds;
+  const savedAds = (await chrome.storage.local.get('savedAds')).savedAds;
   let adIdList: string[];
   if (savedAds && savedAds.adIds) {
     adIdList = Array.from(savedAds.adIds);
@@ -486,7 +486,7 @@ async function handleScreenshotRequest(
   } else {
     adIdList = [adId.toString()];
   }
-  await chromePromise.storage.local.set({
+  await chrome.storage.local.set({
     [adId.toString()]: {
       html: message.html,
       screenshot: screenshot,
@@ -545,7 +545,7 @@ async function handleMeasurementDone(
   }
 
   siteStatus[message.pageURL] += 1;
-  await chromePromise.storage.local.set({ siteStatus: siteStatus });
+  await chrome.storage.local.set({ siteStatus: siteStatus });
 
   sendResponse({ success: true });
 }
@@ -694,7 +694,7 @@ let pageLoadIDs : {[siteUrlTabID: string] : string } = {};
 
 //   let eID;
 //   try {
-//     eID = (await chromePromise.storage.local.get('extension_id')).extension_id;
+//     eID = (await chrome.storage.local.get('extension_id')).extension_id;
 //   } catch (e) {
 //     console.error('Could not get extension ID from storage');
 //     console.error(e);
@@ -746,7 +746,7 @@ let pageLoadIDs : {[siteUrlTabID: string] : string } = {};
  async function addMeasurementStartToTable(siteURL: string, pageLoadID: string, timestamp: number) {
   let eID;
   try {
-    eID = (await chromePromise.storage.local.get('extension_id')).extension_id;
+    eID = (await chrome.storage.local.get('extension_id')).extension_id;
   } catch(e) {
     console.error('Could not get extension ID from storage');
     console.error(e);
@@ -793,7 +793,7 @@ function multikey(siteURL : string, tabID : number) {
 ////////////////////////////////////////////////////////////////////////////////
 function openStatusPage() {
   try {
-    return chromePromise.tabs.create({ url: chrome.runtime.getURL('status.html') });
+    return chrome.tabs.create({ url: chrome.runtime.getURL('status.html') });
   } catch (e) {
     console.error(e);
   }
@@ -801,14 +801,19 @@ function openStatusPage() {
 
 function openInstructionsPage() {
   try {
-    return chromePromise.tabs.create({ url: chrome.runtime.getURL('intro.html') });
+    return chrome.tabs.create({ url: chrome.runtime.getURL('intro.html') });
   } catch (e) {
     console.error(e);
   }
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+// Helpers
+////////////////////////////////////////////////////////////////////////////////
+
 async function getSiteStatus() {
-  const getResult = await chromePromise.storage.local.get('siteStatus');
+  const getResult = await chrome.storage.local.get('siteStatus');
   if (!getResult.siteStatus) {
     throw new Error(`siteStatus doesn't exist in chrome.storage.local`);
   }

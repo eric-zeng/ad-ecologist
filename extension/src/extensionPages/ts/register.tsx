@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { v4 as uuid } from 'uuid';
-import * as chromePromise from '../../common/chromePromise';
 import ErrorAlert from '../../common/errorAlert';
 import { serverUrl } from '../../config';
 
@@ -29,10 +28,10 @@ class Register extends React.Component<{}, State> {
   async registerUser(prolificId: string) {
     // Get extension ID from storage, generate if it doesn't exist
     let extensionId =
-        (await chromePromise.storage.local.get('extension_id')).extension_id;
+        (await chrome.storage.local.get('extension_id')).extension_id;
     if (!extensionId) {
       extensionId = uuid();
-      await chromePromise.storage.local.set({ 'extension_id': extensionId });
+      await chrome.storage.local.set({ 'extension_id': extensionId });
     }
 
     try {

@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import * as chromePromise from '../../common/chromePromise';
 import { serverUrl } from '../../config';
 import AdScreenshotInContext from './AdScreenshotInContext';
 import ErrorAlert from '../../common/errorAlert';
@@ -51,7 +50,7 @@ class ApproveAds extends React.Component<{}, State> {
 
   async componentDidMount() {
     let {savedAds, toExclude, excludeReasons} =
-        await chromePromise.storage.local.get(['savedAds', 'toExclude', 'excludeReasons']);
+        await chrome.storage.local.get(['savedAds', 'toExclude', 'excludeReasons']);
 
     if (!toExclude) {
       toExclude = {};
@@ -61,7 +60,7 @@ class ApproveAds extends React.Component<{}, State> {
       excludeReasons = {};
     }
 
-    const adData = await chromePromise.storage.local.get(savedAds.adIds);
+    const adData = await chrome.storage.local.get(savedAds.adIds as string[]);
 
     for (let adId of Object.keys(adData)) {
       if (!toExclude.hasOwnProperty(adId)) {
@@ -76,7 +75,7 @@ class ApproveAds extends React.Component<{}, State> {
       loadingInitial: false
     });
 
-    await chromePromise.storage.local.set({ toExclude: toExclude });
+    await chrome.storage.local.set({ toExclude: toExclude });
   }
 
   toggleSelect(adId: string) {
@@ -166,7 +165,7 @@ class ApproveAds extends React.Component<{}, State> {
 
     let eID: string;
     try {
-      eID = (await chromePromise.storage.local.get('extension_id')).extension_id;
+      eID = (await chrome.storage.local.get('extension_id')).extension_id;
     } catch (e) {
       console.error(e);
       this.setState({

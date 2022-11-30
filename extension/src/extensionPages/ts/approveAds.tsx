@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import * as chromePromise from '../../common/chromePromise';
-import serverUrl from '../../common/serverUrl';
+import { serverUrl } from '../../config';
 import AdScreenshotInContext from './AdScreenshotInContext';
 import ErrorAlert from '../../common/errorAlert';
 import AdData from './AdData';

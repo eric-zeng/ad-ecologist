@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import MersenneTwister from 'mersenne-twister';
 import * as chromePromise from '../../common/chromePromise';
+import { allowParticipantsToReviewAds, randomizeAllowListOrder, restrictToAllowList, reviewOnAllowListComplete, siteScrapeLimit } from '../../config';
 
 const mt = new MersenneTwister();
 
@@ -62,8 +63,14 @@ class Status extends React.Component<{}, StatusState> {
     if (!this.state.siteStatus) {
       return [];
     }
+    return shuffle(this.getSortedSiteStatusOrder());
+  }
 
-    let sorted = Object.entries(this.state.siteStatus).sort((a, b) => {
+  getSortedSiteStatusOrder() {
+    if (!this.state.siteStatus) {
+      return [];
+    }
+    return Object.entries(this.state.siteStatus).sort((a, b) => {
       if (a[0] < b[0]) {
         return -1;
       }
@@ -72,7 +79,6 @@ class Status extends React.Component<{}, StatusState> {
       }
       return 0;
     });
-    return shuffle(sorted);
   }
 
   render() {
@@ -80,14 +86,20 @@ class Status extends React.Component<{}, StatusState> {
       ? Object.values(this.state.siteStatus).filter(val => val < 2).length
       : '';
 
-    const orderedSiteStatus = this.getRandomizedSiteStatusOrder();
+    const siteStatusEntries = randomizeAllowListOrder
+      ? this.getRandomizedSiteStatusOrder()
+      : this.getSortedSiteStatusOrder();
 
     return (
       <div className="container">
         <img id="logo" src="/img/Allen-School-purple-RGB-med.png"/>
         <h2>UW Ad Tracker Extension</h2>
-
-        <h4>Sites to Visit ({sitesRemaining} sites remaining)</h4>
+        <h4>
+          Sites to Visit
+          { restrictToAllowList && siteScrapeLimit != -1
+            ? <>({sitesRemaining} sites remaining)</>
+            : null }
+        </h4>
         <p>
           We need your help to collect data on the ads that appear on the
           following websites.
@@ -96,12 +108,7 @@ class Status extends React.Component<{}, StatusState> {
           that appear in the purple popup.</b>
           <br/>
         </p>
-        <p>
-          We need to scan each website two times. The popup will automatically
-          do this, but if you accidentally close the tab after one visit, the
-          status of the website will say "Partially Visited", and you will
-          need to open the link again to complete the scan.
-        </p>
+
         { this.state.siteStatus ?
           Object.values(this.state.siteStatus).every(v => v == 2)
             ? <>
@@ -116,16 +123,23 @@ class Status extends React.Component<{}, StatusState> {
           : null
         }
 
+        { allowParticipantsToReviewAds && !reviewOnAllowListComplete
+          ? <a href="approveAds.html" role="button" className="btn btn-primary">
+              Review and Submit Ad Screenshots
+            </a>
+          : null
+        }
+
         <table className="table">
           <thead>
             <tr>
               <th>Website (Link opens in new tab)</th>
-              <th>Status</th>
+              <th># of Visits</th>
             </tr>
           </thead>
           <tbody>
           { this.state.siteStatus
-              ? orderedSiteStatus.map(([url, status]) =>
+              ? siteStatusEntries.map(([url, status]) =>
                   <Site key={url} url={url} status={status}/>
                 )
               : <tr>
@@ -143,36 +157,17 @@ class Status extends React.Component<{}, StatusState> {
           (Our tool many not be able to see the amount paid for every ad on the
           page).
         </p>
-        <p>
-          Once you have visited and collected data on each site, we will
-          ask you to fill out a short survey. At the end, you will have a chance
-          to review the ads we collected, and remove any screenshots of ads
-          that you do not want to share with us (in case you find them too
-          sensitive).
-          <br/>
-          After all tasks are complete, we will give you the Prolific
-          completion code.
-        </p>
-        <h4>Questions? Problems?</h4>
-        <ul>
-          <li>
-            <a href="/intro.html">Click here</a> to read the instructions for the
-            survey again.
-          </li>
-          <li>
-            If you are having issues, please contact the researchers through
-            Prolific, or at&nbsp;
-            <a href="mailto:uwadstudy@cs.washington.edu">
-              uwadstudy@cs.washington.edu
-            </a>.
-          </li>
-          <li>
-            <a href="https://adsurvey.kadara.cs.washington.edu/privacy.html" target="_blank">
-            Click here</a> to view our Privacy Policy.
-          </li>
-        </ul>
+        { allowParticipantsToReviewAds && reviewOnAllowListComplete
+          ? <p>
+              At the end, you will have a chance
+              to review the ads we collected, and remove any screenshots of ads
+              that you do not want to share with us (in case you find them too
+              sensitive).
+            </p>
+          : null
+        }
       </div>
-    )
+    );
   }
 }
 
@@ -186,7 +181,7 @@ class Site extends React.Component<SiteProps, {}> {
     return (
       <tr>
         <td>
-          { this.props.status == 2
+          { restrictToAllowList && siteScrapeLimit != -1 && this.props.status >= siteScrapeLimit
             ? <span className="site-visited">
                 {this.props.url}
               </span>
@@ -197,9 +192,7 @@ class Site extends React.Component<SiteProps, {}> {
         </td>
         <td>
           <span>
-            {this.props.status  == 2 ? '✅ Visited' :
-            this.props.status == 1 ? 'Partially Visited' :
-            'Not Visited Yet'}
+            {this.props.status}
           </span>
         </td>
       </tr>

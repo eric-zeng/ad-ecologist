@@ -2,8 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { v4 as uuid } from 'uuid';
 import * as chromePromise from '../../common/chromePromise';
-import serverUrl from '../../common/serverUrl';
 import ErrorAlert from '../../common/errorAlert';
+import { serverUrl } from '../../config';
 
 interface State {
   prolificId: string,
@@ -89,13 +89,14 @@ class Register extends React.Component<{}, State> {
         <img id="logo" src="/img/Allen-School-purple-RGB-med.png"/>
         <div className="vspace">
           <h2>Welcome to the UW Ad Tracker Study</h2>
+
           <p>
-            A research study from the Paul G. Allen School of Computer Science
-            and Engineering
-            <br/>
-            <small>Investigators: Eric Zeng, Rachel McAmis, Tadayoshi Kohno,
-            Franziska Roesner</small>
+            This is placeholder text for the registration page. You can modify
+            this page (register.html, register.tsx) for whatever onboarding
+            procedures you would like to use, such as a consent form, or
+            asking them to log in with their MTurk or Prolific ID.
           </p>
+
           <label htmlFor="prolificId" className="form-label">
             To get started, please enter your Prolific ID.
           </label>

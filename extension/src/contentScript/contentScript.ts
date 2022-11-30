@@ -5,6 +5,7 @@ import * as pbjsAdapter from './pbjsAdapter';
 import Popup, { PopupStage } from './popup';
 import PopupStyles from './popup.css';
 import * as chromePromise from '../common/chromePromise';
+import { promptBeforeScraping, restrictToAllowList, showAdBoundingBox, siteScrapeLimit } from '../config';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helper Functions
@@ -248,7 +249,7 @@ class Measurement {
    * Instantiates the popup - on construction, it immediately adds visible popup
    * elements to the DOM, so do not call until ready to show the UI.
    */
-  constructor(secondVisit : Boolean) {
+  constructor() {
     // Creates a div with a Shadow DOM, where the popup UI will live.
     // This helps encapsulate the CSS for the popup from the rest of the page.
     this.uiContainer = document.createElement('div');
@@ -260,14 +261,8 @@ class Measurement {
     this.shadow.appendChild(this.popupRoot);
     document.body.appendChild(this.uiContainer);
 
-    // only start at prompt if it's the first time loaded
-    let startingStage = PopupStage.PROMPT;
-    // let visitCount = 0;
-    // otherwise, go straight into progress
-    // if (secondVisit) {
-    //   startingStage = PopupStage.IN_PROGRESS;
-    //   visitCount = 1;
-    // }
+    let startingStage = promptBeforeScraping ? PopupStage.PROMPT : PopupStage.IN_PROGRESS;
+
     // Instantiate the React Popup component inside the Shadow DOM
     this.popupRef = React.createRef<Popup>();
     let props = {
@@ -275,13 +270,15 @@ class Measurement {
       onPromptStart: this.collectData.bind(this),
       onPromptHelp: sendOpenInstructionsMessage,
       onPromptSkip: this.remove.bind(this),
-      onPromptSecondVisit: this.collectData.bind(this),
       onPromptStatus: sendOpenStatusMessage,
       ref: this.popupRef,
       stage: startingStage,
-      // visitCount: visitCount
     }
     ReactDOM.render(React.createElement(Popup, props), this.popupRoot);
+
+    if (!promptBeforeScraping) {
+      this.collectData();
+    }
   }
 
   /**
@@ -319,15 +316,7 @@ class Measurement {
    * the user clicks the "Start" button.
    */
   async collectData() {
-    // let secondVisit = await sendCheckSecondVisitMessage();
-    // console.log('is second visit?', secondVisit);
-
-    // if the first visit, we set progress when data collects
-    // otherwise we already set it
-    // if (!secondVisit) {
-    this.popupRef.current?.setState({ stage: PopupStage.IN_PROGRESS});
-    // }
-
+    this.popupRef.current?.setState({ stage: PopupStage.IN_PROGRESS });
 
     // first, we have to add page url with eID to the pages database
     try {
@@ -348,14 +337,6 @@ class Measurement {
     // Wait for 3s, for the page to finish loading the ads (this number is a guess)
     await sleep(3000);
 
-    // check that the site uses pbjs by adding script to DOM and trying to run commands
-    // from there
-    // if (!(await pbjsAdapter.checkIfExists())) {
-    //   console.error('pbjs doesn\'t exist');
-    //   this.popupRef.current?.setState({ error: 'Error: could not find prebid.js on this page.' });
-    //   return;
-    // }
-
     let cpmTotal = 0;
     let pbAdCount = 0;
     let bidders = new Set<string>();
@@ -364,7 +345,10 @@ class Measurement {
     console.log('Detecting ads');
 
     let ads = detectAds(selectors);
-    // applyAdsDebugOutline(ads);
+    if (showAdBoundingBox) {
+      applyAdsDebugOutline(ads);
+    }
+
     console.log(ads);
 
     this.popupRef.current?.setState({ numAds: ads.size });
@@ -388,8 +372,6 @@ class Measurement {
         if (await pbjsAdapter.checkIfExists()) {
           console.log('Collecting PBJS data');
           // get data associated with current ad
-
-
           try {
             bidResponses = await pbjsAdapter.callFn(`getBidResponses`);
             prebidWinningBids = await pbjsAdapter.callFn(`getAllPrebidWinningBids`);
@@ -408,11 +390,6 @@ class Measurement {
             console.warn('Prebid.js not found on page, not recording bid data');
           }
 
-          // if (!associatedBidResponses && !associatedWinningBids && !associatedPrebidWinningBids) {
-          //   console.log(`Skipping ad, no associated prebid data`);
-          //   this.incrementAdCounter();
-          //   continue;
-          // }
           if (associatedBidResponses) {
             associatedBidResponses.forEach((bid: any) => {
               bidders.add(bid);
@@ -495,18 +472,7 @@ class Measurement {
       return;
     }
 
-    // if (!secondVisit) {
-    //   console.log("entered not second visit logic");
-    //   this.popupRef.current?.setState({ stage: PopupStage.COMPLETE_ONE });
-    //   await sleep(5000);
-
-    //   // reload page again and start ad detection
-    //   await sendReloadPageMessage();
-    //   console.log("reloaded page");
-    // } else {
-    //   // will only reach this on second complete
     this.popupRef.current?.setState({ stage: PopupStage.COMPLETE });
-    // }
   }
 }
 
@@ -548,13 +514,6 @@ function sendMeasurementDoneMessage() {
   } as messages.MeasurementDoneRequest);
 }
 
-// function sendReloadPageMessage() {
-//   return sendAsyncMessage({
-//     type: messages.MessageType.RELOAD_PAGE,
-//     pageURL: location.href
-//   } as messages.ReloadPageRequest);
-// }
-
 function sendMeasurementStartMessage() {
   return sendAsyncMessage({
     type: messages.MessageType.MEASUREMENT_START,
@@ -562,13 +521,6 @@ function sendMeasurementStartMessage() {
     timestamp: Date.now()
   } as messages.MeasurementStartRequest);
 }
-
-// function sendCheckSecondVisitMessage() {
-//   return sendAsyncMessage({
-//     type: messages.MessageType.SECOND_VISIT_CHECK,
-//     pageURL: location.href
-//   } as messages.SecondVisitCheckRequest);
-// }
 
 function sendAsyncMessage(message: messages.BasicMessage) {
   return new Promise<any>((resolve, reject) => {
@@ -592,14 +544,37 @@ function sendAsyncMessage(message: messages.BasicMessage) {
 // This is where content script starts executing, after it is first injected
 // into a web page.
 async function main() {
-  // const getResult = chrome.storage.local.get('siteStatus', (items) => {
-    // if not fully visited
-    // if (items.siteStatus && items.siteStatus[window.location.href] === 0) {
-      const popup = new Measurement(false);
-    // } else if (items.siteStatus && items.siteStatus[window.location.href] === 1) {
-      // const popup = new Measurement(true);
-    // }
-  // });
+  console.log('restrictToAllowList = '  + restrictToAllowList);
+
+
+  // If not using the allow list, run the measurement popup
+  if (!restrictToAllowList) {
+    new Measurement();
+    return;
+  }
+
+  chrome.storage.local.get('siteStatus', (items) => {
+    console.log('items.siteStatus[window.location.href] = ' + items.siteStatus[window.location.href]);
+    console.log('siteScrapeLimit = ' + siteScrapeLimit);
+    if (!items.siteStatus) {
+      return;
+    }
+
+    // Skip if current url is not in the allow list
+    // (implicitly stored as keys in siteStatus if the restrictToAllowList flag
+    // is true)
+    if (!(window.location.href in items.siteStatus)) {
+      return;
+    }
+
+    // Run measurement if current site is below siteScrapeLimit or
+    // siteScrapeLimit doesn't exist
+    if (siteScrapeLimit == -1
+        || items.siteStatus[window.location.href] < siteScrapeLimit) {
+      console.log('Instantiating object');
+      new Measurement();
+    }
+  });
 }
 
 main();

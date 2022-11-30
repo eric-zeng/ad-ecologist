@@ -1,9 +1,9 @@
 import { v4 as uuid } from 'uuid';
 import * as messages from '../common/messages';
-import RequestEvent from './RequestEvent';
-import ProgrammaticCookieEvent from './ProgrammaticCookieEvent'
+// import RequestEvent from './RequestEvent';
+// import ProgrammaticCookieEvent from './ProgrammaticCookieEvent'
 import * as chromePromise from '../common/chromePromise';
-import serverUrl from '../common/serverUrl';
+import {allowParticipantsToReviewAds, restrictToAllowList, reviewOnAllowListComplete, serverUrl, siteScrapeLimit} from '../config';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Event Listener Registration
@@ -11,20 +11,23 @@ import serverUrl from '../common/serverUrl';
 
 // On install, open the registration page.
 chrome.runtime.onInstalled.addListener(async function () {
-  // chrome.tabs.create({ url: chrome.runtime.getURL('register.html') });
+  chrome.tabs.create({ url: chrome.runtime.getURL('register.html') });
 
-  // const res = await fetch(`${serverUrl}/siteAllowList`);
-  // const siteAllowList = await res.json();
+  const res = await fetch(chrome.runtime.getURL('siteAllowList.json'));
+  const siteAllowList = await res.json();
 
   // Initialize siteStatus object in storage
-  // let siteStatus: {[url: string]: number} = {};
-  // for (let site of siteAllowList) {
-    // siteStatus[site] = 0;
-  // }
-  // chrome.storage.local.set({
-    // siteStatus: siteStatus,
-    // randomSeed: Math.floor(Math.random() * 1000000)
-  // });
+  let siteStatus: {[url: string]: number} = {};
+
+  if (restrictToAllowList) {
+    for (let site of siteAllowList) {
+      siteStatus[site] = 0;
+    }
+  }
+  chrome.storage.local.set({
+    siteStatus: siteStatus,
+    randomSeed: Math.floor(Math.random() * 1000000)
+  });
 });
 
 // Collect web request metadata for tracking detection
@@ -46,9 +49,9 @@ chrome.runtime.onInstalled.addListener(async function () {
 // chrome.tabs.onRemoved.addListener(handleTabClose);
 
 // // Set up action UI to show instructions for user
-// chrome.action.onClicked.addListener((tab) => {
-//   openStatusPage();
-// });
+chrome.action.onClicked.addListener((tab) => {
+  openStatusPage();
+});
 
 // Handle various messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -84,15 +87,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// chrome.storage.onChanged.addListener(async (changes, areaName) => {
-  // if (areaName !== 'local' || !('siteStatus' in changes)) {
-    // return;
-  // }
-  // const siteStatus = await getSiteStatus();
-  // if (Object.values(siteStatus).every(visited => visited == 2)) {
-    // chrome.tabs.create({ url: chrome.runtime.getURL('relevanceSurvey.html') });
-  // }
-// });
+// Listen for changes in siteStatus, trigger changes with certain flags on.
+chrome.storage.onChanged.addListener(async (changes, areaName) => {
+  if (areaName !== 'local' || !('siteStatus' in changes)) {
+    return;
+  }
+  const siteStatus = await getSiteStatus();
+  if (allowParticipantsToReviewAds && reviewOnAllowListComplete && restrictToAllowList && siteScrapeLimit != -1) {
+    if (Object.values(siteStatus).every(visited => visited == siteScrapeLimit)) {
+      chrome.tabs.create({ url: chrome.runtime.getURL('approveAds.html') });
+    }
+  }
+});
 
 ////////////////////////////////////////////////////////////////////////////////
 // Tracking Detection
@@ -104,20 +110,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // let cookieBatch: { [siteUrlTabID: string]: ProgrammaticCookieEvent[] } = {};
 // // let sitesFinished = new Set<string>();  // adds when we get a message in content script as done
 
-// /**
-//  * Pick out all valid web response events from a page that just finished
-//  * @param siteURL
-//  */
-//  async function processMeasurementStart(siteURL: string, tabID: number, timestamp: number) {
-//   // check events dict and add response event to table
-//   // by iterating through request ids
-//   console.log(`Creating new page load id`);
-//   let pageLoadID = uuid();
-//   // overwrites if a page was refreshed
-//   pageLoadIDs[multikey(siteURL, tabID)] = pageLoadID;
-//   // send message to stop iterating for previous tab id
-//   await addMeasurementStartToTable(siteURL, pageLoadID, timestamp);
-// }
+/**
+ * Pick out all valid web response events from a page that just finished
+ * @param siteURL
+ */
+ async function processMeasurementStart(siteURL: string, tabID: number, timestamp: number) {
+  // check events dict and add response event to table
+  // by iterating through request ids
+  console.log(`Creating new page load id`);
+  let pageLoadID = uuid();
+  // overwrites if a page was refreshed
+  pageLoadIDs[multikey(siteURL, tabID)] = pageLoadID;
+  // send message to stop iterating for previous tab id
+  await addMeasurementStartToTable(siteURL, pageLoadID, timestamp);
+}
 
 // async function handleOnCompleted(details: chrome.webRequest.WebResponseCacheDetails) {
 //   if (details.tabId < 0) {
@@ -423,12 +429,7 @@ async function handleScreenshotRequest(
     return;
   }
 
-  let data = {
-    html: message.html,
-    adRect: message.adRect,
-    height: message.height,
-    width: message.width,
-    screenshot: screenshot,
+  let data: any = {
     parentUrl: message.parentUrl,
     winningBids: message.winningBids,
     prebidWinningBids: message.prebidWinningBids,
@@ -436,46 +437,57 @@ async function handleScreenshotRequest(
     timestamp: new Date()
   }
 
-  // const response = await fetch(`${serverUrl}/ad_data`, {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json'
-  //   },
-  //   body: JSON.stringify({
-  //     'data': data,
-  //     'eID': eID,
-  //     'pageLoadID': pageLoadIDs[multikey(message.parentUrl, tabId)]
-  //   })
-  // });
+  if (!allowParticipantsToReviewAds) {
+    data = {
+      ...data,
+      html: message.html,
+      adRect: message.adRect,
+      height: message.height,
+      width: message.width,
+      screenshot: screenshot
+    }
+  }
 
-  // if (!response.ok) {
-  //   console.error(`Network error: ${response.status} ${response.statusText}`);
-  //   sendResponse({ success: false, error: `Network error: ${response.status} ${response.statusText}`});
-  //   return;
-  // }
+  const response = await fetch(`${serverUrl}/ad_data`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      'data': data,
+      'eID': eID,
+      'pageLoadID': pageLoadIDs[multikey(message.parentUrl, tabId)]
+    })
+  });
 
-  // // Save ad -> screenshot mapping in storage
-  // const adId = (await response.json()).adId as number;
-  // const savedAds = (await chromePromise.storage.local.get('savedAds')).savedAds;
-  // let adIdList: string[];
-  // if (savedAds && savedAds.adIds) {
-  //   adIdList = Array.from(savedAds.adIds);
-  //   adIdList.push(adId.toString());
-  // } else {
-  //   adIdList = [adId.toString()];
-  // }
-  // await chromePromise.storage.local.set({
-  //   [adId.toString()]: {
-  //     html: message.html,
-  //     screenshot: screenshot,
-  //     rect: message.adRect,
-  //     height: message.height,
-  //     width: message.width,
-  //     pixelRatio: message.pixelRatio,
-  //     winningBidCpm: message.winningBids?.cpm
-  //   },
-  //   savedAds: { adIds: adIdList }
-  // });
+  if (!response.ok) {
+    console.error(`Network error: ${response.status} ${response.statusText}`);
+    sendResponse({ success: false, error: `Network error: ${response.status} ${response.statusText}`});
+    return;
+  }
+
+  // Save ad -> screenshot mapping in storage
+  const adId = (await response.json()).adId as number;
+  const savedAds = (await chromePromise.storage.local.get('savedAds')).savedAds;
+  let adIdList: string[];
+  if (savedAds && savedAds.adIds) {
+    adIdList = Array.from(savedAds.adIds);
+    adIdList.push(adId.toString());
+  } else {
+    adIdList = [adId.toString()];
+  }
+  await chromePromise.storage.local.set({
+    [adId.toString()]: {
+      html: message.html,
+      screenshot: screenshot,
+      rect: message.adRect,
+      height: message.height,
+      width: message.width,
+      pixelRatio: message.pixelRatio,
+      winningBidCpm: message.winningBids?.cpm
+    },
+    savedAds: { adIds: adIdList }
+  });
 
   sendResponse({ success: true });
 }
@@ -485,22 +497,22 @@ async function handleMeasurementDone(
     sender: chrome.runtime.MessageSender,
     sendResponse:(message: messages.BasicResponse) => void) {
 
-  // const siteStatus = await getSiteStatus();
+  const siteStatus = await getSiteStatus();
 
   // // only process events if valid site and hasn't been done already
-  // if (siteStatus[message.pageURL] >= 2) {
+  // if (siteStatus[message.pageURL] >= 1) {
   //   sendResponse({ success: true });
   //   return;
   // }
 
-  if (!sender.tab || !sender.tab.id) {
-    console.error('No tab associated with MEASUREMENT_DONE event');
-    sendResponse({
-      success: false,
-      error: 'No tab associated with MEASUREMENT_DONE event'
-    });
-    return;
-  }
+  // if (!sender.tab || !sender.tab.id) {
+  //   console.error('No tab associated with MEASUREMENT_DONE event');
+  //   sendResponse({
+  //     success: false,
+  //     error: 'No tab associated with MEASUREMENT_DONE event'
+  //   });
+  //   return;
+  // }
 
   // try {
   //   // add the current dictionary batch and send request
@@ -517,9 +529,13 @@ async function handleMeasurementDone(
   //   return;
   // }
 
-  // // Mark site by number of completed
-  // siteStatus[message.pageURL] += 1;
-  // await chromePromise.storage.local.set({ siteStatus: siteStatus });
+  // Mark site by number of completed
+  if (!restrictToAllowList && !siteStatus[message.pageURL]) {
+    siteStatus[message.pageURL] = 0;
+  }
+
+  siteStatus[message.pageURL] += 1;
+  await chromePromise.storage.local.set({ siteStatus: siteStatus });
 
   sendResponse({ success: true });
 }
@@ -529,26 +545,26 @@ async function handleMeasurementStart(
   sender: chrome.runtime.MessageSender, sendResponse:
     (message: messages.BasicResponse) => void) {
 
-  // if (!sender.tab) {
-  //   console.error('No tab associated with page load');
-  //   sendResponse({
-  //     success: false,
-  //     error: 'No tab associated with page load'
-  //   });
-  //   return;
-  // }
-  // if (!sender.tab.id) {
-  //   console.error('Tab associated with page load has no id');
-  //   sendResponse({
-  //     success: false,
-  //     error: 'Tab associated with page load has no id'
-  //   });
-  //   return;
-  // }
-  // const tabId = sender.tab.id;
+  if (!sender.tab) {
+    console.error('No tab associated with page load');
+    sendResponse({
+      success: false,
+      error: 'No tab associated with page load'
+    });
+    return;
+  }
+  if (!sender.tab.id) {
+    console.error('Tab associated with page load has no id');
+    sendResponse({
+      success: false,
+      error: 'Tab associated with page load has no id'
+    });
+    return;
+  }
+  const tabId = sender.tab.id;
 
-  // // upon new page load, associate page with url and tabid
-  // processMeasurementStart(message.pageURL, tabId, message.timestamp);
+  // upon new page load, associate page with url and tabid
+  processMeasurementStart(message.pageURL, tabId, message.timestamp);
 
   // add the current dictionary batch and send request
   // so that we can process all events in dictionary for
@@ -556,32 +572,32 @@ async function handleMeasurementStart(
   sendResponse({ success: true });
 }
 
-// async function handleReloadPage(
-//   message: messages.MeasurementStartRequest,
-//   sender: chrome.runtime.MessageSender, sendResponse:
-//     (message: messages.BasicResponse) => void) {
+async function handleReloadPage(
+  message: messages.MeasurementStartRequest,
+  sender: chrome.runtime.MessageSender, sendResponse:
+    (message: messages.BasicResponse) => void) {
 
-//   if (!sender.tab) {
-//     console.error('No tab associated with page load');
-//     sendResponse({
-//       success: false,
-//       error: 'No tab associated with page load'
-//     });
-//     return;
-//   }
-//   if (!sender.tab.id) {
-//     console.error('Tab associated with page load has no id');
-//     sendResponse({
-//       success: false,
-//       error: 'Tab associated with page load has no id'
-//     });
-//     return;
-//   }
-//   const tabId = sender.tab?.id;
-//   chrome.tabs.reload(tabId);
+  if (!sender.tab) {
+    console.error('No tab associated with page load');
+    sendResponse({
+      success: false,
+      error: 'No tab associated with page load'
+    });
+    return;
+  }
+  if (!sender.tab.id) {
+    console.error('Tab associated with page load has no id');
+    sendResponse({
+      success: false,
+      error: 'Tab associated with page load has no id'
+    });
+    return;
+  }
+  const tabId = sender.tab?.id;
+  chrome.tabs.reload(tabId);
 
-//   sendResponse({ success: true });
-// }
+  sendResponse({ success: true });
+}
 
 // async function handleSecondVisitCheck(
 //   message: messages.SecondVisitCheckRequest,
@@ -660,7 +676,7 @@ let pageLoadIDs : {[siteUrlTabID: string] : string } = {};
  * Send page load info to server
  * @param siteURL url the events take place on
  */
- async function addMeasurementStartToTable(siteURL : string, pageLoadID : string, timestamp : number) {
+ async function addMeasurementStartToTable(siteURL: string, pageLoadID: string, timestamp: number) {
   let eID;
   try {
     eID = (await chromePromise.storage.local.get('extension_id')).extension_id;
@@ -670,9 +686,15 @@ let pageLoadIDs : {[siteUrlTabID: string] : string } = {};
     return;
   }
 
-  // check whether the first or second
-  // const siteStatus = await getSiteStatus();
-  // let isSecond = (siteStatus[siteURL] === 1) ? 2 : 1;
+  // Get the number of times the page has been scraped previously.
+  const siteStatus = await getSiteStatus();
+
+  let curLoad: number;
+  if (!restrictToAllowList && !siteStatus[siteURL]) {
+    curLoad = 1;
+  } else {
+    curLoad = siteStatus[siteURL] + 1;
+  }
 
   // first, we have to add page url with eID to the pages database
   try {
@@ -685,8 +707,8 @@ let pageLoadIDs : {[siteUrlTabID: string] : string } = {};
         'pageURL': siteURL,
         'eID': eID,
         'pageLoadID': pageLoadID,
-        // 'curLoad': isSecond,
-        'timestamp': timestamp
+        'timestamp': timestamp,
+        'curLoad': curLoad
       })
     });
   } catch (e) {
@@ -694,9 +716,9 @@ let pageLoadIDs : {[siteUrlTabID: string] : string } = {};
   }
 }
 
-// function multikey(siteURL : string, tabID : number) {
-//   return siteURL + tabID.toString();
-// }
+function multikey(siteURL : string, tabID : number) {
+  return siteURL + tabID.toString();
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -718,10 +740,10 @@ function openInstructionsPage() {
   }
 }
 
-// async function getSiteStatus() {
-//   const getResult = await chromePromise.storage.local.get('siteStatus');
-//   if (!getResult.siteStatus) {
-//     throw new Error(`siteStatus doesn't exist in chrome.storage.local`);
-//   }
-//   return getResult.siteStatus as {[url: string]: number};
-// }
+async function getSiteStatus() {
+  const getResult = await chromePromise.storage.local.get('siteStatus');
+  if (!getResult.siteStatus) {
+    throw new Error(`siteStatus doesn't exist in chrome.storage.local`);
+  }
+  return getResult.siteStatus as {[url: string]: number};
+}

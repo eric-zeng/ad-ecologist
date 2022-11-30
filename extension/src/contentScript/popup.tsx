@@ -5,7 +5,6 @@ interface State {
   currentAd: number,
   numAds: number,
   stage: PopupStage,
-  // visitCount: number,
   error?: any,
   cpmTotal: number,
   pbAdCount: number,
@@ -15,12 +14,10 @@ interface State {
 interface Props {
   initialNumAds: number,
   stage: PopupStage,
-  // visitCount: number,
   onPromptStart: () => void,
   onPromptSkip: () => void,
   onPromptHelp: () => void,
   onPromptStatus: () => void,
-  // onPromptSecondVisit: () => void
 }
 
 export enum PopupStage {
@@ -37,16 +34,12 @@ export default class Popup extends React.Component<Props, State> {
     super(props);
     this.state = {
       currentAd: 0,
-      // visitCount: 0,
       numAds: this.props.initialNumAds,
       stage: this.props.stage,
       cpmTotal: 0,
       pbAdCount: 0,
       bidderCount: 0
     }
-    // if (this.props.visitCount == 1) {
-    //   this.props.onPromptSecondVisit();
-    // }
   }
 
   renderProgressBar() {

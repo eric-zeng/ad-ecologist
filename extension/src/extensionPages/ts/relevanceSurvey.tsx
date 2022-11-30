@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import * as chromePromise from '../../common/chromePromise';
 import ErrorAlert from '../../common/errorAlert';
-import serverUrl from '../../common/serverUrl';
+import {serverUrl} from '../../config';
 import AdData from './AdData';
 import AdScreenshotInContext from './AdScreenshotInContext';
 

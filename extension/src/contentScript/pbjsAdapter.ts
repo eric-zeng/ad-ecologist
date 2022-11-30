@@ -114,8 +114,10 @@ export async function callFn(functionName : string) {
         }
       }, 2000);
     } catch (e) {
-      console.warn('Site Content Security Policy prevents pbjs querying script from being injected');
-      reject(new Error('Site Content Security Policy prevents pbjs querying script from being injected'));
+      let cspError = 'Site Content Security Policy prevents pbjsAdapter' +
+        ' script from being injected';
+      console.warn(cspError);
+      reject(new Error(cspError));
     }
   });
 }

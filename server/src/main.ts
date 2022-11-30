@@ -6,7 +6,7 @@ import path from 'path';
 import { Pool } from 'pg';
 import 'source-map-support/register';
 import saveScreenshot from './saveScreenshot';
-import { siteAllowList } from './siteAllowList';
+// import { siteAllowList } from './siteAllowList';
 import { detect } from 'detect-browser';
 
 // Process and validate command line args
@@ -166,9 +166,9 @@ app.post('/register', logEndpoint, async (req, res) => {
   }
 });
 
-app.get('/siteAllowList', (req, res) => {
-  res.json(siteAllowList);
-});
+// app.get('/siteAllowList', (req, res) => {
+//   res.json(siteAllowList);
+// });
 
 // Takes ad data from extension, saves the image data in a file, and the
 // metadata in the database

@@ -9,7 +9,7 @@ CREATE TABLE participant (
 -- Extension instance
 CREATE TABLE extension (
   e_id TEXT PRIMARY KEY,
-  participant_id INTEGER REFERENCES participant(id)
+  participant_id INTEGER REFERENCES participant(id),
   browser TEXT,
   browser_version TEXT,
   os TEXT

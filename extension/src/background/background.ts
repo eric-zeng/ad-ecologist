@@ -3,7 +3,7 @@ import * as messages from '../common/messages';
 // import RequestEvent from './RequestEvent';
 // import ProgrammaticCookieEvent from './ProgrammaticCookieEvent'
 // import * as chromePromise from '../common/chromePromise';
-import {allowParticipantsToReviewAds, restrictToAllowList, reviewOnAllowListComplete, serverUrl, siteScrapeLimit} from '../config';
+import {allowParticipantsToReviewAds, restrictToAllowList, reviewAdsOnComplete, serverUrl, siteScrapeLimit, surveyOnComplete} from '../config';
 
 ////////////////////////////////////////////////////////////////////////////////
 // Event Listener Registration
@@ -96,9 +96,17 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
     return;
   }
   const siteStatus = await getSiteStatus();
-  if (allowParticipantsToReviewAds && reviewOnAllowListComplete && restrictToAllowList && siteScrapeLimit != -1) {
+
+  if (restrictToAllowList && siteScrapeLimit != -1) {
     if (Object.values(siteStatus).every(visited => visited == siteScrapeLimit)) {
-      chrome.tabs.create({ url: chrome.runtime.getURL('approveAds.html') });
+      if (surveyOnComplete) {
+        chrome.tabs.create({ url: chrome.runtime.getURL('relevanceSurvey.html') });
+        return;
+      }
+      if (allowParticipantsToReviewAds && reviewAdsOnComplete) {
+        chrome.tabs.create({ url: chrome.runtime.getURL('approveAds.html') });
+        return;
+      }
     }
   }
 });

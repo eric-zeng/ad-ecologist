@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import ErrorAlert from '../../common/errorAlert';
-import {serverUrl} from '../../config';
+import { serverUrl } from '../../config';
 import AdData from './AdData';
 import AdScreenshotInContext from './AdScreenshotInContext';
 
@@ -41,7 +41,7 @@ export default class RelevanceSurvey extends React.Component<{}, State> {
 
 
     const adDataObj = await chrome.storage.local.get(savedAds.adIds as string[]) as {[adId: string]: AdData};
-
+    console.log(adDataObj)
     let adsWithBids = Object.entries(adDataObj)
       .map(([adId, data]) => { return { adId: adId, ...data }})
       .filter(ad => ad.winningBidCpm !== undefined);

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import MersenneTwister from 'mersenne-twister';
-import { allowParticipantsToReviewAds, randomizeAllowListOrder, restrictToAllowList, reviewOnAllowListComplete, siteScrapeLimit } from '../../config';
+import { allowParticipantsToReviewAds, randomizeAllowListOrder, restrictToAllowList, reviewAdsOnComplete, siteScrapeLimit, surveyOnComplete } from '../../config';
 
 const mt = new MersenneTwister();
 
@@ -24,9 +24,9 @@ class Status extends React.Component<{}, StatusState> {
   }
 
   async componentDidMount() {
-    const { siteStatus, visitCount, extension_id, cpmTotal, pbAdCount, randomSeed } =
+    const { siteStatus, extension_id, cpmTotal, pbAdCount, randomSeed } =
       await chrome.storage.local.get(
-        ['siteStatus', 'visitCount', 'extension_id', 'pbAdCount', 'cpmTotal', 'randomSeed']);
+        ['siteStatus', 'extension_id', 'pbAdCount', 'cpmTotal', 'randomSeed']);
 
     if (!extension_id) {
       window.location.href = '/register.html';
@@ -82,7 +82,7 @@ class Status extends React.Component<{}, StatusState> {
 
   render() {
     const sitesRemaining = this.state.siteStatus
-      ? Object.values(this.state.siteStatus).filter(val => val < 2).length
+      ? Object.values(this.state.siteStatus).filter(val => val < siteScrapeLimit).length
       : '';
 
     const siteStatusEntries = randomizeAllowListOrder
@@ -108,21 +108,24 @@ class Status extends React.Component<{}, StatusState> {
           <br/>
         </p>
 
-        { this.state.siteStatus ?
-          Object.values(this.state.siteStatus).every(v => v == 2)
-            ? <>
-                <h5>All sites visited!</h5>
-                <p>
-                  <a href="/relevanceSurvey.html" role="button" className="btn btn-primary">
-                    Click Here to Continue
-                  </a>
-                </p>
-              </>
-            : null
+        { restrictToAllowList
+            && siteScrapeLimit != -1
+            && (allowParticipantsToReviewAds && reviewAdsOnComplete || surveyOnComplete)
+            && this.state.siteStatus
+            && Object.values(this.state.siteStatus).every(v => v == siteScrapeLimit)
+          ? <>
+              <h5>All sites visited!</h5>
+              <p>
+                <a href={surveyOnComplete ? 'relevanceSurvey.html' : '/approveAds.html'}
+                    role="button" className="btn btn-primary">
+                  Click Here to Continue
+                </a>
+              </p>
+            </>
           : null
         }
 
-        { allowParticipantsToReviewAds && !reviewOnAllowListComplete
+        { allowParticipantsToReviewAds && siteScrapeLimit === -1
           ? <a href="approveAds.html" role="button" className="btn btn-primary">
               Review and Submit Ad Screenshots
             </a>
@@ -156,7 +159,7 @@ class Status extends React.Component<{}, StatusState> {
           (Our tool many not be able to see the amount paid for every ad on the
           page).
         </p>
-        { allowParticipantsToReviewAds && reviewOnAllowListComplete
+        { allowParticipantsToReviewAds && reviewAdsOnComplete
           ? <p>
               At the end, you will have a chance
               to review the ads we collected, and remove any screenshots of ads
@@ -180,7 +183,9 @@ class Site extends React.Component<SiteProps, {}> {
     return (
       <tr>
         <td>
-          { restrictToAllowList && siteScrapeLimit != -1 && this.props.status >= siteScrapeLimit
+          { restrictToAllowList
+              && siteScrapeLimit != -1
+              && this.props.status >= siteScrapeLimit
             ? <span className="site-visited">
                 {this.props.url}
               </span>

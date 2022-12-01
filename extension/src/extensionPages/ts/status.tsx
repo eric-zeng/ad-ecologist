@@ -91,8 +91,7 @@ class Status extends React.Component<{}, StatusState> {
 
     return (
       <div className="container">
-        <img id="logo" src="/img/Allen-School-purple-RGB-med.png"/>
-        <h2>UW Ad Tracker Extension</h2>
+        <h1>AdEcologist Study Status</h1>
         <h4>
           Sites to Visit
           { restrictToAllowList && siteScrapeLimit != -1

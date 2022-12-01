@@ -1,14 +1,14 @@
 {
-  "name": "extension",
+  "name": "ad-ecologist-extension",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Browser extension for AdEcologist.",
+  "main": "",
   "scripts": {
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Eric Zeng and Rachel McAmis",
+  "license": "MIT",
   "devDependencies": {
     "@babel/cli": "^7.11.6",
     "@babel/core": "^7.11.6",

@@ -85,9 +85,8 @@ class Register extends React.Component<{}, State> {
   render() {
     return (
       <div className="container">
-        <img id="logo" src="/img/Allen-School-purple-RGB-med.png"/>
         <div className="vspace">
-          <h2>Welcome to the UW Ad Tracker Study</h2>
+          <h2>Welcome to the AdEcologist Study</h2>
 
           <p>
             This is placeholder text for the registration page. You can modify

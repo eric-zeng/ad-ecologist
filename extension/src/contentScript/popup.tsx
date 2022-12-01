@@ -66,7 +66,7 @@ export default class Popup extends React.Component<Props, State> {
   renderInProgress() {
     return (
       <div className='popup-content'>
-        <h4>Please wait, UW Ad Tracker is collecting data on this page</h4>
+        <h4>Please wait, AdEcologist is collecting data on this page</h4>
         { this.renderProgressBar() }
         { this.renderBidInfo() }
       </div>
@@ -79,7 +79,7 @@ export default class Popup extends React.Component<Props, State> {
     return (
       <div className='popup-content'>
         <h3>
-          UW Ad Tracker wants to collect data on this page.
+          AdEcologist wants to collect data on this page.
         </h3>
         <p>
           After clicking start, the extension will automatically scan the ads
@@ -102,7 +102,7 @@ export default class Popup extends React.Component<Props, State> {
   renderUploading() {
     return (
       <div className="popup-content">
-        <h4>Please wait, UW Ad Tracker is uploading data...</h4>
+        <h4>Please wait, AdEcologist is uploading data...</h4>
         <p>
           This may take 30-60 seconds. Please do not close the tab!
         </p>
@@ -115,7 +115,7 @@ export default class Popup extends React.Component<Props, State> {
   renderComplete() {
     return (
       <div className='popup-content'>
-        <h4>UW Ad Tracker is done collecting data on this page!</h4>
+        <h4>AdEcologist is done collecting data on this page!</h4>
         <p>You may safely close this tab.</p>
         {this.renderProgressBar()}
         {this.renderBidInfo()}

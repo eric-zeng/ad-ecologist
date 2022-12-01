@@ -98,31 +98,6 @@ function logEndpoint(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// Home page
-app.get('/', logEndpoint, (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/html/index.html'));
-});
-
-// page for extension installation instructions
-app.get('/installationinstructions.html', logEndpoint, async (req, res) => {
-  const browser = detect(req.get('user-agent'));
-  switch (browser && browser.name) {
-    case 'chrome':
-      res.sendFile(path.join(__dirname, '../dist/html/installationinstructionschrome.html'));
-      break;
-    case 'edge-chromium':
-      res.sendFile(path.join(__dirname, '../dist/html/installationinstructionsedge.html'));
-      break;
-    default:
-      res.sendFile(path.join(__dirname, '../dist/html/browser_not_supported.html'))
-  }
-});
-
-// page for privacy policy
-app.get('/privacy.html', logEndpoint, async (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/html/privacy.html'));
-});
-
 app.post('/register', logEndpoint, async (req, res) => {
   try {
     console.log(`Prolific ID: ${req.body.prolificId}, Extension ID: ${req.body.extensionId}`);

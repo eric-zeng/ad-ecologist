@@ -46,7 +46,7 @@ value of bids offered to fill ad slots by different ad networks, and the value
 of the winning bid. This information can be used to analyze how much advertisers
 value a particular user's impression, or a particular website. It can also
 suggest when an ad is a retargeted ad - research findings show that retargeted
-ads fetch significantly higher bid values [1,2].
+ads fetch significantly higher bid values [2,3].
 
 **Disclamer:** This tool is research code, and may not work out of the box for
 all use cases. However, we hope that it provides a starting point for other
@@ -74,12 +74,16 @@ more or less directly stored in a PostgreSQL database. It also contains basic
 authentication/registration features to restrict usage to registered
 study participants.
 
-## References
+## Acknowledgments
 
 AdEcologist was developed by [Eric Zeng](https://ericwzeng.com) and
 [Rachel McAmis](https://homes.cs.washington.edu/~rcmcamis/). It was used to collect
 data in our IMC 2022 paper measuring targeted advertising and ad auctions, and
 how they vary across demographic characteristics and websites [1].
+
+This work is supported by the National Science Foundation under awards CNS-1565252, CNS-1651230, and CNS-2041894, the John S. and James L. Knight Foundation, the Consumer Reports Digital Lab Fellowship, the UW Center for an Informed Public, and the UW Tech Policy Lab, which receives support from: the William and Flora Hewlett Foundation, the John D. and Catherine T. MacArthur Foundation, Microsoft, the Pierre and Pamela Omidyar Fund at the Silicon Valley Community Foundation.
+
+## References
 
 [1] Eric Zeng, Rachel McAmis, Tadayoshi Kohno, Franziska Roesner.
 [What Factors Affect Targeting and Bids in Online Advertising? A Field Measurement Study.](https://doi.org/10.1145/3517745.3561460)
